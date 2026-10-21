@@ -1,4 +1,4 @@
-import GlobalLayout from "@/components/home/layout/global-layouy";
+import GlobalLayout from "@/components/home/layout/global-layout";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";

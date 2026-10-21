@@ -1,4 +1,6 @@
-﻿export default function HomePage() {
+import NaverMap from "./naver-map";
+
+export default function HomePage() {
   return (
     // 배치를 쉽게 파악하고 수정할 수 있도록 검색, 목록, 지도를 위에서 아래로 배치한다.
     <div className="space-y-6 p-4">
@@ -27,9 +29,12 @@
         <p>검색한 지역의 화장실이 여기에 표시됩니다.</p>
       </section>
 
-      <section aria-label="지도 영역" className="h-80 border p-4">
-        <h2 className="font-bold">지도 영역</h2>
-        <p>주변 화장실 위치를 지도에서 확인할 수 있어요.</p>
+      {/* 최대 너비 제한을 두지 않아 홈 화면에서 사용할 수 있는 폭을 모두 채운다. */}
+      <section
+        aria-label="주변 화장실 지도"
+        className="w-full border"
+      >
+        <NaverMap />
       </section>
     </div>
   );
