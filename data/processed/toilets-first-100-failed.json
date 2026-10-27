@@ -1,0 +1,36 @@
+{
+  "updatedAt": "2026-10-27T16:11:57.164Z",
+  "total": 1,
+  "items": [
+    {
+      "id": "202530000000100824",
+      "name": "와룡공원(관리실옆)",
+      "roadAddress": "서울특별시 종로구 혜화동 산2-13",
+      "jibunAddress": "서울특별시 종로구 혜화동 산2-13",
+      "status": "needs_review",
+      "lat": null,
+      "lng": null,
+      "attempts": [
+        {
+          "query": "서울특별시 종로구 혜화동 산2-13",
+          "matches": [
+            {
+              "lat": 37.5869269,
+              "lng": 127.0050686,
+              "roadAddress": "",
+              "jibunAddress": "서울특별시 종로구 혜화동 산2-2"
+            },
+            {
+              "lat": 37.5859603,
+              "lng": 127.0063435,
+              "roadAddress": "",
+              "jibunAddress": "서울특별시 종로구 혜화동 산1-3"
+            }
+          ],
+          "totalCount": 2
+        }
+      ],
+      "reason": "주소 검색 결과가 여러 개여서 위치 확인이 필요합니다."
+    }
+  ]
+}
