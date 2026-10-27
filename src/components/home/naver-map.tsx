@@ -5,6 +5,7 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import type { MapViewport, Toilet } from "@/types/toilet";
 
 declare global {
   interface Window {
@@ -13,22 +14,15 @@ declare global {
   }
 }
 
-type ToiletMapItem = {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-};
-
 export default function NaverMap({
   position,
   toilets,
-  onVisibleToiletsChange,
+  onViewportChange,
   highlightedToiletId,
 }: {
   position: { lat: number; lng: number } | null;
-  toilets: ToiletMapItem[];
-  onVisibleToiletsChange: (ids: string[]) => void;
+  toilets: Toilet[];
+  onViewportChange: (viewport: MapViewport | null) => void;
   highlightedToiletId: string | null;
 }) {
   // 지도 객체는 화면 상태가 아니므로 ref에 보관해 검색할 때마다 다시 만들지 않는다.
@@ -104,35 +98,36 @@ export default function NaverMap({
   }, [ready, toilets, highlightedToiletId]);
 
   useEffect(() => {
-    if (!ready || !mapRef.current) return;
+    // 검색 전에는 영역을 전달하지 않아 전국 초기 화면에서 화장실 조회가 발생하지 않는다.
+    if (!ready || !position || !mapRef.current) return;
 
     const map = mapRef.current;
-    let previousIds: string[] | null = null;
-    const updateVisibleToilets = () => {
-      // 지역명이나 고정 반경 대신 지도 영역으로 판별해 드래그와 확대·축소를 함께 지원한다.
+    let previousViewport = "";
+    const updateViewport = () => {
       const bounds = map.getBounds();
       if (!(bounds instanceof window.naver.maps.LatLngBounds)) return;
-      const ids = toilets
-        .filter((toilet) =>
-          bounds.hasLatLng(new window.naver.maps.LatLng(toilet.lat, toilet.lng)),
-        )
-        .map((toilet) => toilet.id);
-
-      // 목록이 같으면 다시 알리지 않아 지도를 조금 움직였을 때 불필요한 렌더링을 막는다.
-      const lastIds = previousIds;
-      if (lastIds && ids.length === lastIds.length &&
-        ids.every((id, index) => id === lastIds[index])) return;
-      previousIds = ids;
-      onVisibleToiletsChange(ids);
+      const sw = bounds.getSW();
+      const ne = bounds.getNE();
+      const viewport: MapViewport = {
+        south: sw.lat(), north: ne.lat(), west: sw.lng(), east: ne.lng(), zoom: map.getZoom(),
+      };
+      // 동일한 영역에서 반복되는 idle은 건너뛰어 불필요한 상태 갱신을 막는다.
+      const key = JSON.stringify(viewport);
+      if (key === previousViewport) return;
+      previousViewport = key;
+      onViewportChange(viewport);
     };
 
-    // 이동 중 반복되는 이벤트 대신 idle에서 처리하고, 초기 목록도 이동을 기다리지 않고 반영한다.
-    const listener = window.naver.maps.Event.addListener(map, "idle", updateVisibleToilets);
-    updateVisibleToilets();
+    // 이동이 끝난 시점에만 영역을 조회하고, 화면 크기가 바뀌면 새로운 범위도 반영한다.
+    const listeners = [
+      window.naver.maps.Event.addListener(map, "idle", updateViewport),
+      window.naver.maps.Event.addListener(map, "resize", updateViewport),
+    ];
+    updateViewport();
 
     // 재등록이나 화면 해제 시 이벤트를 제거해 중복 실행과 해제 후 상태 갱신을 방지한다.
-    return () => window.naver.maps.Event.removeListener(listener);
-  }, [ready, toilets, onVisibleToiletsChange]);
+    return () => listeners.forEach((listener) => window.naver.maps.Event.removeListener(listener));
+  }, [ready, position, onViewportChange]);
 
   useEffect(() => {
     // 페이지를 떠날 때 지도 이벤트와 마커를 정리한다.

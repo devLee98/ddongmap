@@ -3,8 +3,11 @@
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSearchQuery } from "@/hooks/use-search-query";
 import { useState } from "react";
-import toiletData from "../../../data/processed/toilets-first-100-success.json";
+import { useToiletsQuery } from "@/hooks/use-toilets-query";
+import { MIN_TOILET_ZOOM, type MapViewport, type Toilet } from "@/types/toilet";
 import NaverMap from "./naver-map";
+
+const EMPTY_TOILETS: Toilet[] = [];
 
 export default function HomePage() {
   // 입력값은 즉시 화면에 반영하고 API에는 입력이 멈춘 뒤의 검색어만 전달한다.
@@ -33,13 +36,14 @@ export default function HomePage() {
       : error?.message ||
         (isSuccess && places.length === 0 ? "검색 결과가 없습니다." : "");
 
-  // 성공 데이터만 담긴 파일이므로 별도의 상태 필터 없이 사용한다.
-  const toilets = toiletData.items;
-  // 지도는 화면 안의 ID만 알려주고, 이름과 주소는 원본 데이터에서 가져와 중복 상태를 줄인다.
-  // React의 상태 설정 함수는 참조가 안정적이어서 지도 이벤트를 렌더링마다 재등록하지 않는다.
-  const [visibleToiletIds, setVisibleToiletIds] = useState<string[] | null>(null);
-  const visibleIdSet = new Set(visibleToiletIds ?? []);
-  const visibleToilets = toilets.filter((toilet) => visibleIdSet.has(toilet.id));
+  // 전국 JSON 대신 검색 후 지도 영역만 서버로 보내고, 응답 하나를 지도와 목록에서 공유한다.
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const toiletQuery = useToiletsQuery(viewport);
+  const zoomInRequired = (viewport !== null && viewport.zoom < MIN_TOILET_ZOOM)
+    || toiletQuery.data?.zoomInRequired === true;
+  const toilets = position && !zoomInRequired && !toiletQuery.isFetching && !toiletQuery.isError
+    ? toiletQuery.data?.items ?? EMPTY_TOILETS : EMPTY_TOILETS;
+  const visibleIdSet = new Set(toilets.map((toilet) => toilet.id));
   // 마우스와 키보드 상태를 분리해 마우스가 벗어나도 키보드 포커스의 강조는 유지한다.
   const [hoveredToiletId, setHoveredToiletId] = useState<string | null>(null);
   const [focusedToiletId, setFocusedToiletId] = useState<string | null>(null);
@@ -83,6 +87,8 @@ export default function HomePage() {
                     lat: Number(place.mapy) / 10_000_000,
                     lng: Number(place.mapx) / 10_000_000,
                   });
+                  // 이전 검색의 마커와 진행 중인 조회를 비우고 새 지도 영역을 기다린다.
+                  setViewport(null);
                   // 선택한 검색 위치를 반영한 뒤 검색 결과만 닫아 지도와 화장실 목록을 보여준다.
                   setSearchResultsOpen(false);
                 }}
@@ -108,16 +114,25 @@ export default function HomePage() {
         ) : (
           <>
         <p role="status">
-          {visibleToiletIds === null
-            ? "지도를 불러오는 중입니다."
-            : `현재 지도 영역의 화장실: ${visibleToilets.length}개`}
+          {zoomInRequired
+            ? "지도를 더 확대하면 화장실이 표시됩니다."
+            : toiletQuery.isError
+              ? toiletQuery.error.message
+              : viewport === null || toiletQuery.isFetching
+                ? "현재 지도 영역의 화장실을 불러오는 중입니다."
+                : `현재 지도 영역의 화장실: ${toilets.length}개`}
         </p>
-        {visibleToiletIds !== null && visibleToilets.length === 0 && (
+        {toiletQuery.isError && (
+          <button type="button" className="border p-2" onClick={() => void toiletQuery.refetch()}>
+            다시 시도
+          </button>
+        )}
+        {viewport && !zoomInRequired && toiletQuery.isSuccess && !toiletQuery.isFetching && toilets.length === 0 && (
           <p>현재 지도 영역에 등록된 화장실이 없습니다. 지도를 이동하거나 축소해 보세요.</p>
         )}
         {/* 목록이 길어져도 지도 위치가 계속 밀리지 않도록 목록 내부에서 스크롤한다. */}
         <ul className="max-h-72 space-y-2 overflow-y-auto" aria-label="현재 지도 영역의 화장실 목록">
-          {visibleToilets.map((toilet) => (
+          {toilets.map((toilet) => (
             <li
               key={toilet.id}
               tabIndex={0}
@@ -131,7 +146,7 @@ export default function HomePage() {
               onBlur={() => setFocusedToiletId((id) => id === toilet.id ? null : id)}
             >
               <p className="font-medium">{toilet.name}</p>
-              <p className="text-sm">{toilet.roadAddress || toilet.jibunAddress}</p>
+              <p className="text-sm">{toilet.address}</p>
             </li>
           ))}
         </ul>
@@ -145,7 +160,7 @@ export default function HomePage() {
           position={position}
           toilets={toilets}
           highlightedToiletId={highlightedToiletId}
-          onVisibleToiletsChange={setVisibleToiletIds}
+          onViewportChange={setViewport}
         />
       </section>
     </div>
