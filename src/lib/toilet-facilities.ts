@@ -1,11 +1,11 @@
 import type { Toilet } from "@/types/toilet";
 
 export const FACILITY_STYLES = {
-  both: { label: "남녀 이용", icon: "/icons/toilet.svg", color: "#0f766e" },
+  both: { label: "공용", icon: "/icons/toilet.svg", color: "#0f766e" },
   male: { label: "남성용", icon: "/icons/toilet-male.svg", color: "#2563eb" },
   female: { label: "여성용", icon: "/icons/toilet-female.svg", color: "#db2777" },
-  none: { label: "일반 시설 없음", icon: "/icons/toilet-unknown.svg", color: "#64748b" },
-  unknown: { label: "시설 정보 확인 필요", icon: "/icons/toilet-unknown.svg", color: "#64748b" },
+  none: { label: "확인 필요", icon: "/icons/toilet-unknown.svg", color: "#64748b" },
+  unknown: { label: "확인 필요", icon: "/icons/toilet-unknown.svg", color: "#64748b" },
 } as const;
 
 export function getFacilityStyle(toilet: Pick<Toilet, "maleToiletCount" | "maleUrinalCount" | "femaleToiletCount">) {

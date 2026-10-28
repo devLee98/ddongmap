@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <!-- Lucide UserRound 아이콘으로 화장실 마커와 현재 위치를 명확히 구분한다. 라이선스: LUCIDE-LICENSE.txt -->
+  <circle cx="20" cy="20" r="18" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <svg x="8" y="8" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="5"/>
+    <path d="M20 21a8 8 0 0 0-16 0"/>
+  </svg>
+</svg>
