@@ -1,4 +1,5 @@
 import type { SearchResponse, SearchResult } from "@/types/search";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 type LocalItem = { title: string; address: string; roadAddress?: string; mapx: string; mapy: string };
 type AddressItem = { roadAddress: string; jibunAddress: string; x: string; y: string };
@@ -62,6 +63,12 @@ async function searchAddresses(query: string, signal: AbortSignal): Promise<Sear
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("query")?.trim().replace(/\s+/g, " ");
   if (!query) return Response.json({ message: "검색어를 입력해주세요." }, { status: 400 });
+  if (query.length > 100) {
+    return Response.json({ message: "검색어는 100자 이하로 입력해 주세요." }, { status: 400 });
+  }
+  // 공개 검색 프록시를 통한 네이버 API 한도 소진을 줄이기 위해 IP별 호출 수를 제한한다.
+  const limited = enforceRateLimit(request, { scope: "places", limit: 60, windowMs: 60_000 });
+  if (limited) return limited;
 
   // 이름과 주소를 단정하지 않고 병렬 조회해 지번·도로명·장소명을 함께 지원한다.
   // 브라우저 요청 취소와 시간 제한을 두 API에 함께 적용해 오래된 검색을 종료한다.

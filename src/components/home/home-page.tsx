@@ -103,8 +103,8 @@ export default function HomePage() {
   };
 
   return (
-    // 동적 뷰포트 높이를 사용해 모바일 주소창 크기가 달라져도 검색 아래를 지도로 채운다.
-    <div className="flex h-dvh flex-col gap-4 p-4">
+    // 상위 레이아웃이 헤더를 제외한 높이를 배정하므로 그 안에서 검색 아래를 지도로 채운다.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
       <section aria-label="화장실 검색" className="shrink-0 space-y-2">
         <div className="flex gap-2">
           <input
