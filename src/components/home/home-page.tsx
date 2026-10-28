@@ -20,11 +20,12 @@ export default function HomePage() {
   );
   // 입력을 지우면 대기 시간 없이 결과를 비우고 빈 검색어 요청을 막는다.
   const {
-    data: places = [],
+    data: searchData,
     isFetching: loading,
     error,
     isSuccess,
   } = useSearchQuery(query.trim() ? debouncedQuery : "");
+  const places = searchData?.items ?? [];
   const waiting = query.trim() !== debouncedQuery;
   // 새 검색어를 입력하는 동안 이전 결과를 선택하지 않도록 목록을 잠시 숨긴다.
   const visiblePlaces = !searchResultsOpen || waiting || !query.trim() ? [] : places;
@@ -33,7 +34,7 @@ export default function HomePage() {
       ? query.trim()
         ? "검색 중…"
         : ""
-      : error?.message ||
+      : error?.message || searchData?.warning ||
         (isSuccess && places.length === 0 ? "검색 결과가 없습니다." : "");
 
   // 전국 JSON 대신 검색 후 지도 영역만 서버로 보내고, 응답 하나를 지도와 목록에서 공유한다.
@@ -66,8 +67,8 @@ export default function HomePage() {
               setSearchResultsOpen(true);
             }}
             onFocus={() => setSearchResultsOpen(true)}
-            aria-label="지역 또는 장소"
-            placeholder="지역 또는 장소를 입력하세요"
+            aria-label="주소 또는 장소"
+            placeholder="도로명주소, 지번주소 또는 장소를 입력하세요"
             className="min-w-0 flex-1 border p-2"
           />
           <button type="button" disabled className="shrink-0 whitespace-nowrap border p-2">
@@ -77,15 +78,15 @@ export default function HomePage() {
         <p role="status">{message}</p>
         <ul className="space-y-2">
           {visiblePlaces.map((place, index) => (
-            <li key={`${place.mapx}-${place.mapy}-${index}`}>
+            <li key={`${place.kind}-${place.lng}-${place.lat}-${index}`}>
               <button
                 type="button"
                 className="w-full border p-2 text-left"
                 onClick={() => {
-                  // 검색 좌표는 1천만 배 정수이므로 도 단위로 바꿔 지도에 전달한다.
+                  // 서버에서 주소와 장소 좌표를 같은 도 단위로 맞춰 지도에 그대로 전달한다.
                   setPosition({
-                    lat: Number(place.mapy) / 10_000_000,
-                    lng: Number(place.mapx) / 10_000_000,
+                    lat: place.lat,
+                    lng: place.lng,
                   });
                   // 이전 검색의 마커와 진행 중인 조회를 비우고 새 지도 영역을 기다린다.
                   setViewport(null);
@@ -93,8 +94,8 @@ export default function HomePage() {
                   setSearchResultsOpen(false);
                 }}
               >
-                {/* 검색어 강조 태그는 제거하고 텍스트로 출력해 HTML 삽입을 막는다. */}
-                <p>{place.title.replace(/<[^>]*>/g, "")}</p>
+                <span className="text-xs text-gray-600">{place.kind === "address" ? "주소 후보" : "장소"}</span>
+                <p>{place.title}</p>
                 <p className="text-sm">{place.address}</p>
               </button>
             </li>
