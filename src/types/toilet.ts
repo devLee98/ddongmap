@@ -4,6 +4,9 @@ export type Toilet = {
   address: string;
   lat: number;
   lng: number;
+  maleToiletCount: number | null;
+  maleUrinalCount: number | null;
+  femaleToiletCount: number | null;
 };
 
 export type MapViewport = {

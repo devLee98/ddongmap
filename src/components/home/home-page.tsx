@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useToiletsQuery } from "@/hooks/use-toilets-query";
 import { MIN_TOILET_ZOOM, type MapViewport, type Toilet } from "@/types/toilet";
 import NaverMap from "./naver-map";
+import { FACILITY_STYLES, getFacilityStyle } from "@/lib/toilet-facilities";
 
 const EMPTY_TOILETS: Toilet[] = [];
 
@@ -147,6 +148,7 @@ export default function HomePage() {
               onBlur={() => setFocusedToiletId((id) => id === toilet.id ? null : id)}
             >
               <p className="font-medium">{toilet.name}</p>
+              <p className="text-sm">{getFacilityStyle(toilet).label}</p>
               <p className="text-sm">{toilet.address}</p>
             </li>
           ))}
@@ -157,6 +159,14 @@ export default function HomePage() {
 
       {/* 최대 너비 제한을 두지 않아 홈 화면에서 사용할 수 있는 폭을 모두 채운다. */}
       <section aria-label="주변 화장실 지도" className="w-full border">
+        <ul aria-label="마커 색상 안내" className="flex flex-wrap gap-3 p-2 text-sm">
+          {[FACILITY_STYLES.both, FACILITY_STYLES.male, FACILITY_STYLES.female, { ...FACILITY_STYLES.unknown, label: "일반 시설 없음·확인 필요" }].map((style) => (
+            <li key={style.label} className="flex items-center gap-1">
+              <span aria-hidden="true" className="h-3 w-3 rounded-full" style={{ backgroundColor: style.color }} />
+              {style.label}
+            </li>
+          ))}
+        </ul>
         <NaverMap
           position={position}
           toilets={toilets}

@@ -18,8 +18,11 @@ function getToilets() {
     path.join(process.cwd(), "data/processed/toilets-all-success.json"), "utf8",
   ).then((text) => {
     const data = JSON.parse(text) as { items: StoredToilet[] };
-    return data.items.map(({ id, name, roadAddress, jibunAddress, lat, lng }) => ({
+    return data.items.map(({ id, name, roadAddress, jibunAddress, lat, lng, maleToiletCount, maleUrinalCount, femaleToiletCount }) => ({
       id, name, address: roadAddress || jibunAddress, lat, lng,
+      maleToiletCount: maleToiletCount ?? null,
+      maleUrinalCount: maleUrinalCount ?? null,
+      femaleToiletCount: femaleToiletCount ?? null,
     }));
   }).catch((error) => {
     // 일시적인 파일 읽기 실패가 모든 후속 요청에 고정되지 않도록 다음 조회를 허용한다.
