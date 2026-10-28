@@ -1,6 +1,7 @@
 import { readFile, writeFile, appendFile, mkdir, rename, open, unlink } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import nextEnv from "@next/env";
+import { getGeneralFacilityCounts } from "./lib/toilet-csv.mjs";
 
 nextEnv.loadEnvConfig(process.cwd());
 const directory = "data/processed";
@@ -106,13 +107,13 @@ async function main() {
   const toilets = rows.map((cells, index) => {
     if (cells.length !== headers.length) throw new Error(`CSV ${index + 2}행의 컬럼 개수가 다릅니다.`);
     const row = Object.fromEntries(headers.map((key, i) => [key, cells[i].trim()]));
-    return { id: row["관리번호"], name: row["화장실명"], roadAddress: row["소재지도로명주소"], jibunAddress: row["소재지지번주소"] };
+    return { id: row["관리번호"], name: row["화장실명"], roadAddress: row["소재지도로명주소"], jibunAddress: row["소재지지번주소"], ...getGeneralFacilityCounts(row) };
   });
   total = toilets.length;
   if (new Set(toilets.map(keyOf)).size !== total) throw new Error("동일한 식별 정보를 가진 중복 행이 있습니다. 중복 처리를 먼저 확인해야 합니다.");
   await mkdir(directory, { recursive: true });
   if (process.argv.includes("--dry-run")) {
-    console.log(JSON.stringify({ total, maxInitialCalls: total * 2, invalidTextRows: toilets.filter((item) => Object.values(item).some((value) => value.includes("\uFFFD"))).length }));
+    console.log(JSON.stringify({ total, maxInitialCalls: total * 2, invalidTextRows: toilets.filter((item) => [item.id, item.name, item.roadAddress, item.jibunAddress].some((value) => value.includes("\uFFFD"))).length }));
     return;
   }
   const clientId = process.env.NAVER_MAP_CLIENT_ID || process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
@@ -175,7 +176,7 @@ async function main() {
         try {
           const attempts = [];
           let matched;
-          const invalid = Object.values(toilet).some((value) => value.includes("\uFFFD"));
+          const invalid = [toilet.id, toilet.name, toilet.roadAddress, toilet.jibunAddress].some((value) => value.includes("\uFFFD"));
           if (!invalid) {
             for (const query of [...new Set([toilet.roadAddress, toilet.jibunAddress].filter(Boolean))]) {
               const attempt = await geocode(query);

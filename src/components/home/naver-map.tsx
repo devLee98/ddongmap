@@ -6,6 +6,7 @@
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import type { MapViewport, Toilet } from "@/types/toilet";
+import { getFacilityStyle } from "@/lib/toilet-facilities";
 
 declare global {
   interface Window {
@@ -56,25 +57,67 @@ export default function NaverMap({
     if (!ready || !mapRef.current) return;
 
     const map = mapRef.current;
-    // 동일한 SVG 파일을 재사용하고 중심점을 좌표에 맞춰 검색 위치 핀과 화장실을 구분한다.
-    const toiletIcon: naver.maps.ImageIcon = {
-      url: "/icons/toilet.svg",
-      size: new window.naver.maps.Size(40, 40),
-      scaledSize: new window.naver.maps.Size(40, 40),
-      anchor: new window.naver.maps.Point(20, 20),
+    // 정보창 하나를 재사용하고 자동 지도 이동을 막아 마커를 빠르게 오가도 화면을 유지한다.
+    const infoWindow = new window.naver.maps.InfoWindow({
+      content: "",
+      disableAutoPan: true,
+      maxWidth: 280,
+      borderColor: "#d1d5db",
+      backgroundColor: "#ffffff",
+      pixelOffset: new window.naver.maps.Point(0, -12),
+      zIndex: 200,
+    });
+    const listeners: naver.maps.MapEventListener[] = [];
+    let hoveredMarker: naver.maps.Marker | null = null;
+    const closeInfo = () => {
+      hoveredMarker = null;
+      infoWindow.close();
     };
-    const markers = toilets.map((toilet) =>
-      new window.naver.maps.Marker({
+    // 일반 시설의 이용 대상별 SVG를 사용하며 중심점을 좌표에 맞춘다.
+    const markers = toilets.map((toilet) => {
+      const marker = new window.naver.maps.Marker({
         map,
         position: new window.naver.maps.LatLng(toilet.lat, toilet.lng),
-        title: toilet.name,
-        icon: toiletIcon,
-      }),
-    );
+        title: `${toilet.name} (${getFacilityStyle(toilet).label})`,
+        icon: {
+          url: getFacilityStyle(toilet).icon,
+          size: new window.naver.maps.Size(40, 40),
+          scaledSize: new window.naver.maps.Size(40, 40),
+          anchor: new window.naver.maps.Point(20, 20),
+        },
+      });
+      // CSV의 이름·주소를 HTML 문자열로 삽입하지 않고 textContent로 넣어 텍스트로만 표시한다.
+      listeners.push(window.naver.maps.Event.addListener(marker, "mouseover", () => {
+        const content = document.createElement("div");
+        content.style.cssText = "padding:12px;max-width:260px;overflow-wrap:anywhere;pointer-events:none;font-size:13px;color:#111827";
+        const name = document.createElement("strong");
+        name.textContent = toilet.name;
+        const address = document.createElement("p");
+        address.textContent = toilet.address;
+        address.style.cssText = "margin:4px 0;color:#4b5563";
+        const facility = document.createElement("p");
+        facility.textContent = getFacilityStyle(toilet).label;
+        facility.style.margin = "0";
+        content.append(name, address, facility);
+        hoveredMarker = marker;
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+      }));
+      listeners.push(window.naver.maps.Event.addListener(marker, "mouseout", () => {
+        // 이전 마커의 늦은 이탈 이벤트가 새 마커의 정보창을 닫지 않도록 대상을 확인한다.
+        if (hoveredMarker === marker) closeInfo();
+      }));
+      return marker;
+    });
+    // 지도를 조작하는 동안 남아 있는 정보창을 닫아 현재 화면과 정보가 어긋나지 않게 한다.
+    listeners.push(window.naver.maps.Event.addListener(map, "dragstart", closeInfo));
+    listeners.push(window.naver.maps.Event.addListener(map, "zoom_changed", closeInfo));
     toiletMarkersRef.current = markers;
 
     // 이 effect에서 만든 마커를 정리해 데이터 변경이나 화면 해제 시 중복과 누적을 막는다.
     return () => {
+      closeInfo();
+      listeners.forEach((listener) => window.naver.maps.Event.removeListener(listener));
       markers.forEach((marker) => marker.setMap(null));
       toiletMarkersRef.current = [];
     };
@@ -88,7 +131,8 @@ export default function NaverMap({
       const highlighted = toilets[index].id === highlightedToiletId;
       const size = highlighted ? 48 : 40;
       marker.setIcon({
-        url: highlighted ? "/icons/toilet-highlighted.svg" : "/icons/toilet.svg",
+        // 호버가 끝나면 공통 초록이 아닌 해당 화장실의 원래 성별 색상으로 복원한다.
+        url: highlighted ? "/icons/toilet-highlighted.svg" : getFacilityStyle(toilets[index]).icon,
         size: new window.naver.maps.Size(size, size),
         scaledSize: new window.naver.maps.Size(size, size),
         anchor: new window.naver.maps.Point(size / 2, size / 2),
