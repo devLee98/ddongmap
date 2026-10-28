@@ -1,17 +1,27 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export default function GolbalLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    // 동적 뷰포트 높이 안에서 헤더를 먼저 배치해 지도 때문에 페이지 스크롤이 생기지 않게 한다.
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
       <header className="h-15 shrink-0 border-b">
         <div className="mx-auto flex h-full max-w-7xl items-center px-4">
-          <Link href="/" className="font-bold">
+          <Link href="/" className="flex items-center gap-2 font-bold">
+            <Image
+              src="/icons/app-icon-192.png"
+              alt=""
+              width={36}
+              height={36}
+              priority
+              className="rounded-lg"
+            />
             응가맵
           </Link>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
+      <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
         {children}
       </main>
     </div>
