@@ -129,7 +129,7 @@ export default function HomePage() {
             aria-busy={locating}
             className="shrink-0 whitespace-nowrap border p-2 disabled:opacity-50"
           >
-            {locating ? "위치 확인 중…" : "내 위치"}
+            내 위치
           </button>
         </div>
         <p role="status">{message}</p>

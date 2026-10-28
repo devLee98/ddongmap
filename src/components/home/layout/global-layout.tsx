@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export default function GolbalLayout({ children }: { children: ReactNode }) {
@@ -7,7 +8,15 @@ export default function GolbalLayout({ children }: { children: ReactNode }) {
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
       <header className="h-15 shrink-0 border-b">
         <div className="mx-auto flex h-full max-w-7xl items-center px-4">
-          <Link href="/" className="font-bold">
+          <Link href="/" className="flex items-center gap-2 font-bold">
+            <Image
+              src="/icons/app-icon-192.png"
+              alt=""
+              width={36}
+              height={36}
+              priority
+              className="rounded-lg"
+            />
             응가맵
           </Link>
         </div>
